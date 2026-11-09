@@ -1,9 +1,9 @@
 use crate::db::repositories::user::find_by_bussiness_id;
 use crate::richtext::stream;
-use crate::{app::state::AppState, db::repositories::business_message};
+use crate::{app::state::AppState, db::repositories::messages};
 use rustigram::prelude::*;
+use rustigram::types::UpdateKind;
 use rustigram::types::rich_message::InputRichMessage;
-use rustigram::types::{InputFile, UpdateKind};
 
 pub async fn handle_deleted(ctx: Context, state: AppState) -> BotResult<()> {
     let UpdateKind::DeletedBusinessMessages(deleted) = &ctx.update.kind else {
@@ -12,7 +12,7 @@ pub async fn handle_deleted(ctx: Context, state: AppState) -> BotResult<()> {
 
     let mut text = String::new();
     for message_id in &deleted.message_ids {
-        if let Some(message) = business_message::find(
+        if let Some(message) = messages::find(
             &state.db,
             *message_id,
             deleted.chat.id,
@@ -49,7 +49,9 @@ pub async fn handle_deleted(ctx: Context, state: AppState) -> BotResult<()> {
         &ctx.bot,
         admin_user.telegram_id,
         ctx.update_id().max(1),
-        InputRichMessage::from_html(r#"<tg-thinking><i>Colllecting information ...</i></tg-thinking>"#),
+        InputRichMessage::from_html(
+            r#"<tg-thinking><i>Colllecting information ...</i></tg-thinking>"#,
+        ),
         &text,
     )
     .await?;

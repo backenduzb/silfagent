@@ -1,4 +1,4 @@
-use crate::db::entities::business_message::{ActiveModel, Column, Entity, Model};
+use crate::db::entities::messages::{ActiveModel, Column, Entity, Model};
 use anyhow::Result;
 use sea_orm::{ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 

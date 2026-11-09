@@ -1,5 +1,5 @@
 use crate::richtext::stream;
-use crate::{app::state::AppState, db::repositories::business_message};
+use crate::{app::state::AppState, db::repositories::messages};
 use rustigram::prelude::*;
 use rustigram::types::UpdateKind;
 use rustigram::types::rich_message::InputRichMessage;
@@ -20,7 +20,7 @@ pub async fn handle_message(ctx: Context, state: AppState) -> BotResult<()> {
         return Ok(());
     };
 
-    business_message::save(
+    messages::save(
         &state.db,
         message.message_id,
         message.chat.id,
