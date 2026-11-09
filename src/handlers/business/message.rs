@@ -1,9 +1,10 @@
 use crate::richtext::stream;
+use crate::{app::state::AppState, db::repositories::business_message};
 use rustigram::prelude::*;
 use rustigram::types::UpdateKind;
 use rustigram::types::rich_message::InputRichMessage;
 
-pub async fn handle_message(ctx: Context) -> BotResult<()> {
+pub async fn handle_message(ctx: Context, state: AppState) -> BotResult<()> {
     let UpdateKind::BusinessMessage(message) = &ctx.update.kind else {
         return Ok(());
     };
@@ -12,12 +13,26 @@ pub async fn handle_message(ctx: Context) -> BotResult<()> {
         return Ok(());
     };
 
-    let response = concat!(
-        "<b>Assalomu alaykum!</b>",
-        
-        "\n\n",
-        "<i>from @silf</i>"
-    );
+    let Some(text) = message.text.as_deref() else {
+        return Ok(());
+    };
+    let Some(sender) = message.from.as_ref() else {
+        return Ok(());
+    };
+
+    business_message::save(
+        &state.db,
+        message.message_id,
+        message.chat.id,
+        connection_id.to_owned(),
+        text.to_owned(),
+        sender.id,
+        sender.username.clone(),
+        sender.first_name.clone(),
+    )
+    .await?;
+
+    let response = concat!("<b>Assalomu alaykum!</b>", "\n\n", "<i>from @silf</i>");
 
     stream::stream_with_business_connection(
         &ctx.bot,

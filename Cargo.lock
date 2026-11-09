@@ -9,8 +9,10 @@ dependencies = [
  "anyhow",
  "dotenvy",
  "migration",
+ "reqwest",
  "rustigram",
  "sea-orm",
+ "serde_json",
  "time",
  "tokio",
 ]

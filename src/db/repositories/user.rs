@@ -1,7 +1,10 @@
-use crate::db::entities::user::{ActiveModel, Column, Entity, Model};
+use crate::{
+    db::entities::business,
+    db::entities::user::{ActiveModel, Column, Entity, Model},
+};
 use anyhow::Result;
 use sea_orm::{
-    ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
+    ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, ModelTrait, QueryFilter,
     sea_query::OnConflict,
 };
 
@@ -15,6 +18,23 @@ pub async fn find_by_telegram_id(
         .await?;
 
     Ok(user)
+}
+
+pub async fn find_by_bussiness_id(
+    db: &DatabaseConnection,
+    business_connection_id: &str,
+) -> Result<Option<Model>> {
+    let business_conn = business::Entity::find()
+        .filter(business::Column::ConnectionId.eq(business_connection_id))
+        .one(db)
+        .await?;
+
+    if let Some(conn) = business_conn {
+        let user = conn.find_related(Entity).one(db).await?;
+        Ok(user)
+    } else {
+        Ok(None)
+    }
 }
 
 pub async fn upsert_profile(

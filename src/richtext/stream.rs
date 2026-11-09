@@ -5,6 +5,7 @@ use rustigram::prelude::{BotClient, BotResult};
 use rustigram::types::message::ParseMode;
 use rustigram::types::rich_message::InputRichMessage;
 use sea_orm::DatabaseConnection;
+use std::future::Future;
 use std::time::Duration;
 use tokio::time::Instant;
 use tokio::time::sleep;
@@ -20,6 +21,16 @@ pub async fn stream(
     text: &str,
 ) -> BotResult<()> {
     stream_inner(bot, chat_id, draft_id, thinking, text, None, false).await
+}
+
+pub async fn stream_html(
+    bot: &BotClient,
+    chat_id: i64,
+    draft_id: i64,
+    thinking: InputRichMessage,
+    text: &str,
+) -> BotResult<()> {
+    stream_inner(bot, chat_id, draft_id, thinking, text, None, true).await
 }
 
 pub async fn stream_with_business_connection(
@@ -40,6 +51,86 @@ pub async fn stream_with_business_connection(
         true,
     )
     .await
+}
+
+pub async fn stream_thinking(
+    bot: &BotClient,
+    chat_id: i64,
+    draft_id: i64,
+    thinking: InputRichMessage,
+    duration: Duration,
+    business_connection_id: Option<&str>,
+) -> BotResult<()> {
+    let mut typing = bot.send_chat_action(chat_id, ChatAction::Typing);
+    if let Some(connection_id) = business_connection_id {
+        typing = typing.business_connection_id(connection_id);
+    }
+    let _ = typing.await;
+
+    let _ = bot
+        .send_rich_message_draft(chat_id, draft_id, thinking)
+        .await;
+
+    sleep(duration).await;
+
+    Ok(())
+}
+
+pub async fn stream_while<F>(
+    bot: &BotClient,
+    chat_id: i64,
+    draft_id: i64,
+    thinking: InputRichMessage,
+    action: ChatAction,
+    business_connection_id: Option<&str>,
+    task: F,
+    done_text: &str,
+) -> BotResult<()>
+where
+    F: Future<Output = BotResult<()>>,
+{
+    let mut chat_action = bot.send_chat_action(chat_id, action);
+    if let Some(connection_id) = business_connection_id {
+        chat_action = chat_action.business_connection_id(connection_id);
+    }
+    let _ = chat_action.await;
+
+    let _ = bot
+        .send_rich_message_draft(chat_id, draft_id, thinking.clone())
+        .await;
+
+    let started = Instant::now();
+    tokio::pin!(task);
+
+    loop {
+        tokio::select! {
+            result = &mut task => {
+                result?;
+                break;
+            }
+            _ = sleep(DRAFT_REFRESH) => {
+                let current_draft_id = rotating_draft_id(draft_id, started.elapsed());
+
+                let mut chat_action = bot.send_chat_action(chat_id, action);
+                if let Some(connection_id) = business_connection_id {
+                    chat_action = chat_action.business_connection_id(connection_id);
+                }
+                let _ = chat_action.await;
+
+                let _ = bot
+                    .send_rich_message_draft(chat_id, current_draft_id, thinking.clone())
+                    .await;
+            }
+        }
+    }
+
+    let mut response = bot.send_rich_message(chat_id, InputRichMessage::from_html(done_text));
+    if let Some(connection_id) = business_connection_id {
+        response = response.business_connection_id(connection_id);
+    }
+    let _ = response.await;
+
+    Ok(())
 }
 
 async fn stream_inner(
@@ -79,10 +170,15 @@ async fn stream_inner(
         typing.await?;
 
         if business_connection_id.is_none() {
+            let draft_text = if raw_html {
+                full_text.clone()
+            } else {
+                escape_html(&full_text)
+            };
             bot.send_rich_message_draft(
                 chat_id,
                 current_draft_id,
-                InputRichMessage::from_html(escape_html(&full_text)),
+                InputRichMessage::from_html(&draft_text),
             )
             .await?;
         }
@@ -200,7 +296,7 @@ fn split_text(text: &str) -> Vec<String> {
     chunks
 }
 
-fn escape_html(text: &str) -> String {
+pub fn escape_html(text: &str) -> String {
     text.replace('&', "&amp;")
         .replace('<', "&lt;")
         .replace('>', "&gt;")
