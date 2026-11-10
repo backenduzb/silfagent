@@ -1,0 +1,31 @@
+name: Build and Push Docker Images
+
+on:
+    push:
+        branches:
+            - master
+        paths:
+            - "./**"
+            - ".github/workflows/**"
+
+    workflow_dispatch:
+
+permissions:
+    contents: read
+    packages: write
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - run: cargo test
+
+    build:
+        needs: test
+        uses: ./.github/workflows/build.yml
+        with:
+            service: silf
+            context: ./
+            dockerfile: ./Dockerfile
+            image: telegram-silf
