@@ -1,6 +1,8 @@
-./target
+target
 .git
+.github
 .DS_Store
 .zed
 .vscode
 build
+.env

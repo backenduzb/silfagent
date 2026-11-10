@@ -1,10 +1,11 @@
 use dotenvy::dotenv;
 use std::env;
+use std::net::SocketAddr;
 use std::time::Duration;
 
 pub struct Env {
     pub tgtoken: String,
-    pub webaddr: Option<std::net::SocketAddr>,
+    pub webaddr: Option<SocketAddr>,
     pub weburl: Option<String>,
     pub websecret: Option<String>,
     pub debug: bool,
@@ -28,12 +29,16 @@ impl Env {
         let (webaddr, weburl, websecret) = if debug {
             (None, None, None)
         } else {
+            let host = env::var("WEBHOOK_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
+            let port = env::var("WEBHOOK_PORT")
+                .unwrap_or_else(|_| "8080".to_string())
+                .parse::<u16>()?;
+            let addr: SocketAddr = format!("{host}:{port}").parse()?;
+
             (
-                Some(env::var("`
-                    +
-                    ")?.parse()?),
+                Some(addr),
                 Some(env::var("WEBHOOK_URL")?),
-                Some(env::var("WEBHOOK_SECRET")?),
+                env::var("WEBHOOK_SECRET").ok(),
             )
         };
 

@@ -18,13 +18,27 @@ pub async fn run() -> Result<()> {
     } else {
         let addr = settings
             .webaddr
-            .context("webhook address is required when DEBUG=false")?;
-        let secret = settings
-            .websecret
+            .context("debug")?;
+        let url = settings
+            .weburl
             .as_deref()
-            .context("webhook secret is required when DEBUG=false")?;
+            .context("debug")?;
+        let secret = settings.websecret.as_deref();
+
+        let mut set_webhook = bot.client.set_webhook(url);
+        if let Some(secret) = secret {
+            set_webhook = set_webhook.secret_token(secret);
+        }
+        set_webhook
+            .await
+            .context("cann't regidter webhook")?;
+
+        let mut config = WebhookConfig::new(addr);
+        if let Some(secret) = secret {
+            config = config.secret_token(secret);
+        }
         dispatcher
-            .webhook(WebhookConfig::new(addr).secret_token(secret))
+            .webhook(config)
             .await
             .context("webhook stopped")?;
     }
