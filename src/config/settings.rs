@@ -10,6 +10,7 @@ pub struct Env {
     pub websecret: Option<String>,
     pub debug: bool,
     pub dburl: String,
+    pub activity_url: String,
 }
 
 pub const THINKING_TIME: Duration = Duration::from_secs(1);
@@ -22,6 +23,7 @@ impl Env {
 
         let tgtoken = env::var("BOT_TOKEN")?;
         let dburl = env::var("DATABASE_URL")?;
+        let activity_url = env::var("ACTIVITY_URL")?;
         let debug = env::var("DEBUG")
             .unwrap_or_else(|_| "false".to_string())
             .parse::<bool>()?;
@@ -31,6 +33,7 @@ impl Env {
         } else {
             let host = env::var("WEBHOOK_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
             let port = env::var("WEBHOOK_PORT")
+                .or_else(|_| env::var("PORT"))
                 .unwrap_or_else(|_| "8080".to_string())
                 .parse::<u16>()?;
             let addr: SocketAddr = format!("{host}:{port}").parse()?;
@@ -38,7 +41,8 @@ impl Env {
             (
                 Some(addr),
                 Some(env::var("WEBHOOK_URL")?),
-                env::var("WEBHOOK_SECRET").ok(),
+                env::var("WEBHOOK_SECRET")
+                    .ok()
             )
         };
 
@@ -49,6 +53,7 @@ impl Env {
             websecret,
             debug,
             dburl,
+            activity_url,
         })
     }
 }

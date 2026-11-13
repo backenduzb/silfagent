@@ -20,13 +20,15 @@ pub enum StoryStage {
 #[derive(Clone)]
 pub struct AppState {
     pub db: DatabaseConnection,
+    pub activity_url: String,
     pub pending_stories: Arc<RwLock<HashMap<(String, i64), PendingStory>>>,
 }
 
 impl AppState {
-    pub fn new(db: DatabaseConnection) -> Self {
+    pub fn new(db: DatabaseConnection, activity_url: String) -> Self {
         Self {
             db,
+            activity_url,
             pending_stories: Arc::new(RwLock::new(HashMap::new())),
         }
     }

@@ -1,8 +1,9 @@
-use crate::richtext::stream;
+use crate::services::activity::is_online;
+use crate::services::greedy::is_greedy;
 use crate::{app::state::AppState, db::repositories::messages};
 use rustigram::prelude::*;
+use rustigram::types::ParseMode;
 use rustigram::types::UpdateKind;
-use rustigram::types::rich_message::InputRichMessage;
 
 pub async fn handle_message(ctx: Context, state: AppState) -> BotResult<()> {
     let UpdateKind::BusinessMessage(message) = &ctx.update.kind else {
@@ -32,17 +33,19 @@ pub async fn handle_message(ctx: Context, state: AppState) -> BotResult<()> {
     )
     .await?;
 
-    let response = concat!("<b>Assalomu alaykum!</b>", "\n\n", "<i>from @silf</i>");
+    match is_online(state).await {
+        Ok(is_active) => {
+            if !is_active {
+                if is_greedy(text).await {
+                    ctx.bot
+                        .send_message(message.chat.id, &format!("<b>Assalomu alaykum, {}!</b> @python_dev_junior hozir boshqa ish bilan band. Savollaringiz bo'lsa mendan so'rashingiz mumkin.", sender.first_name))
+                        .parse_mode(ParseMode::HTML)
+                        .business_connection_id(connection_id.to_owned()).await?;
+                }
+            }
+        }
 
-    stream::stream_with_business_connection(
-        &ctx.bot,
-        message.chat.id,
-        ctx.update_id().max(1),
-        InputRichMessage::from_html(r#"<tg-thinking><i>Javob tayyorlanmoqda...</i></tg-thinking>"#),
-        response,
-        connection_id,
-    )
-    .await?;
-
+        Err(_) => return Ok(()),
+    }
     Ok(())
 }
