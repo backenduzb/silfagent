@@ -1,6 +1,9 @@
 use crate::db::entities::messages::{ActiveModel, Column, Entity, Model};
 use anyhow::Result;
-use sea_orm::{ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use sea_orm::{
+    ActiveValue::Set, ColumnTrait, DatabaseConnection, DbErr, DeleteResult, EntityTrait,
+    QueryFilter,
+};
 
 pub async fn save(
     db: &DatabaseConnection,
@@ -39,4 +42,18 @@ pub async fn find(
         .filter(Column::ConnectionId.eq(connection_id))
         .one(db)
         .await?)
+}
+
+pub async fn delete(
+    db: &DatabaseConnection,
+    message_id: i64,
+    chat_id: i64,
+    connection_id: &str,
+) -> Result<DeleteResult, DbErr> {
+    Entity::delete_many()
+        .filter(Column::MessageId.eq(message_id))
+        .filter(Column::ChatId.eq(chat_id))
+        .filter(Column::ConnectionId.eq(connection_id))
+        .exec(db)
+        .await
 }

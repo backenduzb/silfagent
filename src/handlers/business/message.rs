@@ -33,19 +33,18 @@ pub async fn handle_message(ctx: Context, state: AppState) -> BotResult<()> {
     )
     .await?;
 
-    match is_online(state).await {
-        Ok(is_active) => {
-            if !is_active {
-                if is_greedy(text).await {
-                    ctx.bot
-                        .send_message(message.chat.id, &format!("<b>Assalomu alaykum, {}!</b> @python_dev_junior hozir boshqa ish bilan band. Savollaringiz bo'lsa mendan so'rashingiz mumkin.", sender.first_name))
-                        .parse_mode(ParseMode::HTML)
-                        .business_connection_id(connection_id.to_owned()).await?;
-                }
+    if is_greedy(text).await {
+        match is_online(state).await {
+            Ok(_) => {
+                ctx.bot
+                    .send_message(message.chat.id, &format!("<b>Assalomu alaykum, {}!</b> @python_dev_junior hozir boshqa ish bilan band. Savollaringiz bo'lsa mendan so'rashingiz mumkin.", sender.first_name))
+                    .parse_mode(ParseMode::HTML)
+                    .business_connection_id(connection_id.to_owned()).await?;
             }
-        }
 
-        Err(_) => return Ok(()),
+            Err(_) => return Ok(()),
+        }
     }
+
     Ok(())
 }

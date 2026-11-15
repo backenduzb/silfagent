@@ -28,9 +28,7 @@ pub async fn get_activity(state: AppState) -> Result<Activity, Error> {
 
 pub async fn is_online(state: AppState) -> Result<bool, Error> {
     match get_activity(state).await {
-        Ok(result) => {
-            Ok(result.activity == "communication")
-        }
+        Ok(result) => Ok(result.activity == "communication"),
         Err(_) => Ok(false),
     }
 }
